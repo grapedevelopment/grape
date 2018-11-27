@@ -1,6 +1,6 @@
 <?php
 /**
- *
+ * @description Loads settings from database
  */
 
 // no direct call
