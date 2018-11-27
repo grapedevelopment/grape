@@ -1,6 +1,6 @@
 <?php
 /**
- *
+ * @description Loads active theme
  */
 
 // no direct call
