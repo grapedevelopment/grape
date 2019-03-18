@@ -49,13 +49,13 @@ function grape_csv_dump($sql_result,$filename){
 	foreach ($sql_result[0] as $key => $value){
 		array_push($row,str_replace('"',"'",$key));
 	}
-	$out = '"'.join(";",$row).'"';
+	$out = '"'.join('";"',$row).'"';
 	foreach($sql_result as $result){
 		$row = array();
 		foreach($result as $key => $value){
 			array_push($row,str_replace('"',"'",$value));
 		}
-		$out.= "\n".'"'.join(";",$row).'"';
+		$out.= "\n".'"'.join('";"',$row).'"';
 	}
 	header("Content-type: application/octet-stream");
 	header("Content-Disposition: attachment; filename=".date("Y-m-d_H-i-s")."_".$filename.".csv");
