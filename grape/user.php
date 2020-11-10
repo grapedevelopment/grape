@@ -17,9 +17,11 @@ function grape_load_current_user(){
 	global $grape;
 	$sql = "SELECT 	`grape_users`.*,
 					`grape_organization_units`.`name` AS ou_name,
+					`grape_organization_unit_types`.`name` AS ou_type_name,
 					`grape_communes`.`name` AS commune_name
 			FROM `grape_users`
 			LEFT JOIN `grape_organization_units` ON `grape_organization_units`.`ou_id` = `grape_users`.`ou_id`
+			LEFT JOIN `grape_organization_unit_types` ON `grape_organization_unit_types`.`ou_type_id` = `grape_organization_units`.`ou_type_id`
 			LEFT JOIN `grape_communes` ON `grape_communes`.`commune_id` = `grape_users`.`commune_id`
 			WHERE `grape_users`.`username` = '".$grape->auth->username."'
 			AND `grape_users`.`auth_id` = ".$grape->auth->auth_id;
@@ -80,6 +82,29 @@ function grape_user_has_capability($user_capability,$needed_capability){
 	}
 }
 /**
+ * Check whether user is admin
+ * @param int $user_id
+ * @return bool True if admin
+ */
+function grape_user_is_admin($user_id = false){
+	global $grape;
+	if($user_id === false){
+		$user_id = $grape->user->user_id;
+	}
+	$user_id = intval($user_id);
+	$sql = "SELECT *
+			FROM `grape_capabilities`
+			WHERE `power` = 'admin'
+			AND `user_id` = $user_id";
+	$grape->db->query($sql);
+	if($grape->db->num_rows > 0){
+		return true;
+	}
+	else{
+		return false;
+	}
+}
+/**
  * looks for capability in every leaf of ou tree under given ou
  * @param int $ou_id
  * @param bool $start
@@ -125,7 +150,9 @@ function grape_get_capability_of_current_user_for_ou($ou_id){
 	if(isset($grape->user) && isset($grape->user->trusted) && $grape->user->trusted == 1){
 		$capability = "user";
 	}
+	//$grape->output->content->html.= $grape->output->dump_var("checking capability for user_id ".$grape->user->user_id." for ou ".$ou_id);
 	$capability = grape_get_capability_for_ou_recursive($ou_id,$grape->user->user_id,$capability);
+	//$grape->output->content->html.= $grape->output->dump_var("user_id ".$grape->user->user_id." has ".$capability." capability for ou ".$ou_id);
 	return $capability;
 }
 /**
@@ -136,7 +163,10 @@ function grape_get_capability_of_current_user_for_district($district_id,$electio
 	$capability = "none";
 	$district_id = intval($district_id);
 	$election_id = intval($election_id);
-	$sql = "SELECT `organization_unit_id` FROM `grape_x_elections_electoral_districts` WHERE `electoral_district_id` = $district_id AND `election_id` = $election_id";
+	$sql = "SELECT `organization_unit_id`
+			FROM `grape_x_elections_electoral_districts`
+			WHERE `electoral_district_id` = $district_id
+			AND `election_id` = $election_id";
 	$grape->db->query($sql);
 	if($grape->db->num_rows == 1){
 		$db_results = $grape->db->get_results();
@@ -154,10 +184,12 @@ function grape_get_capability_for_ou_recursive($ou_id,$user_id,$capability="none
 	global $grape;
 	$ou_id = intval($ou_id);
 	$user_id = intval($user_id);
+	//$grape->output->content->html.= $grape->output->dump_var("recursion temp capability '$capability' for ou $ou_id");
 	// get capability for this ou
 	$new_capability = grape_get_capability_for_ou($ou_id,$user_id);
 	// compare with existing capability
 	$capability = grape_get_bigger_capability($new_capability,$capability);
+	//$grape->output->content->html.= $grape->output->dump_var("new capability is '$capability' for ou $ou_id");
 	// go up one step
 	$parent_ou_id = grape_get_parent_organization_unit($ou_id);
 	if($parent_ou_id!==false){
@@ -178,7 +210,11 @@ function grape_get_capability_for_ou($ou_id,$user_id){
 	$ou_id = intval($ou_id);
 	$user_id = intval($user_id);
 	$capability = "none";
-	$sql = "SELECT * FROM `grape_capabilities` WHERE `user_id` = $user_id AND `context_id` = $ou_id AND `context` = 'ou'";
+	$sql = "SELECT *
+			FROM `grape_capabilities`
+			WHERE `user_id` = $user_id
+			AND `context_id` = $ou_id
+			AND `context` = 'ou'";
 	$grape->db->query($sql);
 	if($grape->db->num_rows == 1){
 		$db_results = $grape->db->get_results();
@@ -446,11 +482,12 @@ function grape_organization_unit_select($organization_units,$selected_ou_id,$nee
 		//$grape->html_output->content.= grape_get_capability_of_current_user_for_ou($item->ou_id);
 		if(grape_user_has_capability(grape_get_capability_of_current_user_for_ou($item->ou_id),$needed_capability)){
 			if($item->ou_type_id == 3) {
-				if($last_ou_type_id > $item->ou_type_id) $html.= '</optgroup>';
-				$html.= '<optgroup label="'.$item->name.'">';
+				//if($last_ou_type_id > $item->ou_type_id) $html.= '</optgroup>';
+				//$html.= '<optgroup label="'.$item->name.'">';
+				$html.= '<option value="'.$item->ou_id.'"'.(($item->ou_id==$selected_ou_id)?' selected="selected"':'').'>'.$item->name.' ('.$item->type.')</option>';
 			}
 			elseif($item->ou_type_id > 3){
-				$html.= '<option value="'.$item->ou_id.'"'.(($item->ou_id==$selected_ou_id)?' selected="selected"':'').'>'.$item->name.' ('.$item->type.')</option>';
+				$html.= '<option value="'.$item->ou_id.'"'.(($item->ou_id==$selected_ou_id)?' selected="selected"':'').'>&nbsp;&nbsp;&nbsp;'.$item->name.' ('.$item->type.')</option>';
 			}
 		}
 	}

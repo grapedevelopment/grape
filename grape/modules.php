@@ -48,5 +48,24 @@ function grape_get_module_by_code($code){
 	}
 	return false;
 }
+/**
+ * Build a HTML select for modules
+ * @param array $elections
+ * @param int $selected_id
+ * @return string HTML optgroups and options
+ */
+function grape_module_select($collection,$selected_id){
+	global $grape;
+	$html = '';
+	
+	foreach($collection as $item){
+		if($item->active==1 && $item->code !== "admin")
+			$html.= '<option value="'.$item->module_id.'"'.(($item->module_id==$selected_id)?' selected="selected"':'').'>'.$item->name.'</option>';
+	}
+	return $html;
+}
+/**
+ *
+ */
 
 ?>

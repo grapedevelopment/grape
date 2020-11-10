@@ -28,7 +28,10 @@ include_once('legal.php');
 include_once('modules.php');
 /* load module campaigns */
 include_once('campaigns.php');
+/* load module elections */
+include_once('elections.php');
 grape_active_campaigns_by_user();
+grape_get_all_campaigns();
 /* ping */
 if(isset($_REQUEST["job"]) && $_REQUEST["job"]=="ping"){
 	echo '{"online":true}';
@@ -210,9 +213,9 @@ else{
 	//$methods = $this->getMethods(ReflectionMethod::IS_PUBLIC);
 	//$this->output->content->html.= "<pre>".print_r($methods,true)."</pre>";
 	//$grape->output->content->html.= grape_get_biggest_capability_within_ou(1);
-	if(grape_get_biggest_capability_within_ou(1)=="admin"){
+	//if is admin somewhere => show admin menu item
+	if(grape_user_is_admin() && $_REQUEST["module"] != "admin"){
 		$grape->output->add_menu_item(array("url"=>URL."?module=admin","name"=>"Adminübersicht"));
-		//$grape->output->add_menu_item(array("url"=>URL."?module=admin","name"=>"Adminübersicht"));
 	}
 	$grape->output->add_menu_item(array("url"=>URL."?job=userdata_edit","name"=>"Meine Daten"));
 	$grape->output->add_menu_item(array("url"=>URL."?job=account_change_password","name"=>"Passwort ändern"));
@@ -232,7 +235,7 @@ elseif(OUTPUT=="AJAX"){
 	$grape->output->ajax_out();
 }
 /**
- *
+ * Start screen renders carts of available campaigns
  */
 function grape_start_screen(){
 	global $grape;
@@ -242,6 +245,7 @@ function grape_start_screen(){
 	$html = "";
 	//$grape->output->add_menu_items(grape_get_modules_menu());
 	//$grape->output->content->html.= "<pre>Settings: ".print_r($grape->settings,true)."</pre>";
+	//$grape->output->content->html.= $grape->output->dump_var($grape->user->campaigns);
 	// Campaign Buttons
 	foreach($grape->user->campaigns as $campaing){
 		$capability_for_this_campaign = grape_get_biggest_capability_within_ou($campaing->ou_id);
@@ -273,18 +277,19 @@ function grape_start_screen(){
 			}*/
 		}
 	}
-	$html.= "<h3>Hallo ".$grape->user->name." ".$grape->user->last_name."!</h3><p>Herzlich Willkommen auf Ihrer Kampagnenplattform.</p>";
+	$html.= "<h3>Hallo ".$grape->user->name.((SALUTATION=="Sie")?" ".$grape->user->last_name:"")."!</h3><p>Herzlich Willkommen auf ".((SALUTATION=="Sie")?"Ihrer":" Deiner")." Kampagnenplattform.</p>";
+	$html.= "<p>Im ".$grape->user->ou_type_name." ".$grape->user->ou_name." ";
 	if(count($grape->output->campaignitems) == 0){
-		//$html.= "<p>Beim ".$grape->user->ou_name." laufen momentan keine Kampagnen.</p>";
+		$html.= "laufen momentan keine Kampagnen.</p>";
 	}
 	else{
 		if(count($grape->output->campaignitems) == 1){
-			//$html.= "<p>Beim ".$grape->user->ou_name." läuft momentan eine Kampagne. Mach mit!</p>";
+			$html.= "läuft momentan eine Kampagne. Mach mit!</p>";
 		}
 		else{
 			//$grape->output->content->html.= $grape->output->wrap_div(get_current_term());
-			//$html.= "<p>Beim ".$grape->user->ou_name." ";
-			//$html.= "laufen momentan ".count($grape->output->campaignitems)." Kampagnen. Mach mit!</p>";
+			//$grape->output->content->html.= $grape->output->dump_var($grape->user);
+			$html.= "laufen momentan ".count($grape->output->campaignitems)." Kampagnen. Mach mit!</p>";
 		}
 		$campaign_buttons = $grape->output->build_campaign_buttons();
 	}

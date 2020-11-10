@@ -122,4 +122,23 @@ function grape_escape($string){
 		return preg_replace('~[\x00\x0A\x0D\x1A\x22\x25\x27\x5C\x5F]~u', '\\\$0', $string);
 	}
 }
+/**
+ * Build a HTML select for sql queries
+ * @param array $collection
+ * @param int $selected_id
+ * @return string HTML options
+ */
+function grape_select($collection,$selected_id){
+	$html = '';
+	foreach($collection as $item){
+		if(
+			(!isset($item->active) && !isset($item->visible)) ||
+			(isset($item->active) && $item->active==1) ||
+			(isset($item->visible) && $item->visible==1)
+		   ){
+			$html.= '<option value="'.$item->id.'"'.(($item->id==$selected_id)?' selected="selected"':'').'>'.$item->name.'</option>';
+		}
+	}
+	return $html;
+}
 ?>
